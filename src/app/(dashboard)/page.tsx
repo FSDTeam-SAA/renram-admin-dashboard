@@ -1,8 +1,13 @@
 import React from 'react'
+import OverViewCard from './_components/OverViewCard'
+import SellReport from './_components/SellReport'
 
 function page() {
   return (
-    <div>page</div>
+    <div>
+      <OverViewCard />
+      <SellReport />
+    </div>
   )
 }
 
