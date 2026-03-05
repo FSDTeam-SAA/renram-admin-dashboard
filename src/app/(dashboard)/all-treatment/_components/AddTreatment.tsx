@@ -14,6 +14,8 @@ import {
 } from "@/components/ui/select";
 import { Trash2, Plus } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
+import { useSession } from "next-auth/react";
+import { useMutation } from "@tanstack/react-query";
 
 type Question = {
   id: number;
@@ -26,6 +28,9 @@ export default function AddTreatment() {
   const [treatmentName, setTreatmentName] = useState("");
   const [category, setCategory] = useState("");
   const [description, setDescription] = useState("");
+
+  const session = useSession();
+  const TOKEN = session?.data?.user?.accessToken || "";
 
   const [questions, setQuestions] = useState<Question[]>([
     {
@@ -46,7 +51,7 @@ export default function AddTreatment() {
     setQuestions([
       ...questions,
       {
-        id: Date.now(), // better than length for unique id
+        id: Date.now(),
         question: "Which of the following best describes what you're experiencing right now?",
         options: ["", "", "", "", ""],
         correctAnswer: "",
@@ -55,7 +60,7 @@ export default function AddTreatment() {
   };
 
   const removeQuestion = (id: number) => {
-    if (questions.length <= 1) return; // keep at least one
+    if (questions.length <= 1) return;
     setQuestions(questions.filter((q) => q.id !== id));
   };
 
@@ -74,11 +79,60 @@ export default function AddTreatment() {
 
   const updateCorrectAnswer = (qId: number, value: string) => {
     setQuestions(
-      questions.map((q) =>
-        q.id === qId ? { ...q, correctAnswer: value } : q
-      )
+      questions.map((q) => (q.id === qId ? { ...q, correctAnswer: value } : q))
     );
   };
+
+  // ─── Add Treatment Mutation ─────────────────────────
+  const addTreatmentMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_API_URL}/treatment`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${TOKEN}`,
+        },
+        body: JSON.stringify({
+          name: treatmentName,
+          category,
+          description,
+          treatmentQuestions: questions.map((q) => ({
+            question: q.question,
+            options: q.options,
+            answare: q.correctAnswer,
+          })),
+        }),
+      });
+      if (!res.ok) throw new Error("Failed to add treatment");
+      return res.json();
+    },
+    onSuccess: (data) => {
+      console.log("Treatment added successfully:", data);
+      alert("Treatment added successfully!");
+      // Reset form after successful submission
+      setTreatmentName("");
+      setCategory("");
+      setDescription("");
+      setQuestions([
+        {
+          id: 1,
+          question: "Which of the following best describes what you're experiencing right now?",
+          options: [
+            "Low energy or persistent fatigue",
+            "Irritability, mood changes, or feeling 'off'",
+            "Loss of muscle or increased body fat",
+            "Decreased libido or sexual performance concerns",
+            "None of these apply",
+          ],
+          correctAnswer: "Low energy or persistent fatigue",
+        },
+      ]);
+    },
+    onError: (err) => {
+      console.error("Error adding treatment:", err);
+      alert("Failed to add treatment. Please try again.");
+    },
+  });
 
   return (
     <div className="min-h-screen">
@@ -94,8 +148,12 @@ export default function AddTreatment() {
             </h1>
           </div>
 
-          <Button className="bg-blue-600 hover:bg-blue-700 px-6">
-            Publish Treatment
+          <Button
+            className="bg-blue-600 hover:bg-blue-700 px-6"
+            onClick={() => addTreatmentMutation.mutate()}
+            disabled={addTreatmentMutation.isPending}
+          >
+            {addTreatmentMutation.isPending ? "Publishing..." : "Publish Treatment"}
           </Button>
         </div>
 

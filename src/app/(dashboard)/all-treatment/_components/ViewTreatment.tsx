@@ -12,11 +12,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Trash2, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useParams } from "next/navigation";
-import { useSession } from "next-auth/react";
 
 type Question = {
   id: number;
@@ -31,7 +30,7 @@ type TreatmentQuestion = {
   answare: string;
 };
 
-export default function EditTreatment() {
+export default function ViewTreatment() {
   const params = useParams();
   const treatmentId = params.id as string;
 
@@ -39,9 +38,6 @@ export default function EditTreatment() {
   const [category, setCategory] = useState("");
   const [description, setDescription] = useState("");
   const [questions, setQuestions] = useState<Question[]>([]);
-
-  const session = useSession();
-  const TOKEN = session?.data?.user?.accessToken || "";
 
   // ─── Fetch Single Treatment ─────────────────────────
   const { data: singleTreatment } = useQuery({
@@ -63,82 +59,31 @@ export default function EditTreatment() {
       setCategory(singleTreatment.category || "");
       setDescription(singleTreatment.description || "");
       setQuestions(
-        singleTreatment.treatmentQuestions?.map((q: TreatmentQuestion, i: number) => ({
-          id: i + 1,
-          question: q.question,
-          options: q.options,
-          correctAnswer: q.answare,
-        })) || []
+        singleTreatment.treatmentQuestions?.map(
+          (q: TreatmentQuestion, i: number) => ({
+            id: i + 1,
+            question: q.question,
+            options: q.options,
+            correctAnswer: q.answare,
+          })
+        ) || []
       );
     }
   }, [singleTreatment]);
 
-  // ─── Question Handling ───────────────────────────────
   const addNewQuestion = () => {
     setQuestions([
       ...questions,
       {
         id: Date.now(),
-        question: "Which of the following best describes what you're experiencing right now?",
+        question:
+          "Which of the following best describes what you're experiencing right now?",
         options: ["", "", "", "", ""],
         correctAnswer: "",
       },
     ]);
   };
 
-  const removeQuestion = (id: number) => {
-    if (questions.length <= 1) return;
-    setQuestions(questions.filter((q) => q.id !== id));
-  };
-
-  const updateOption = (qId: number, optIndex: number, value: string) => {
-    setQuestions(
-      questions.map((q) =>
-        q.id === qId
-          ? { ...q, options: q.options.map((opt, i) => (i === optIndex ? value : opt)) }
-          : q
-      )
-    );
-  };
-
-  const updateCorrectAnswer = (qId: number, value: string) => {
-    setQuestions(
-      questions.map((q) => (q.id === qId ? { ...q, correctAnswer: value } : q))
-    );
-  };
-
-  // ─── Update Mutation ────────────────────────────────
-  const editMutation = useMutation({
-    mutationFn: async () => {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_BACKEND_API_URL}/treatment/${treatmentId}`,
-        {
-          method: "PUT",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${TOKEN}` },
-          body: JSON.stringify({
-            name: treatmentName,
-            category,
-            description,
-            treatmentQuestions: questions.map((q) => ({
-              question: q.question,
-              options: q.options,
-              answare: q.correctAnswer,
-            })),
-          }),
-        }
-      );
-      if (!res.ok) throw new Error("Failed to update treatment");
-      return res.json();
-    },
-    onSuccess: (data) => {
-      alert("Treatment updated successfully!");
-      console.log("Updated treatment:", data);
-    },
-    onError: (err) => {
-      console.error(err);
-      alert("Failed to update treatment. Try again.");
-    },
-  });
 
   return (
     <div className="min-h-screen">
@@ -150,17 +95,9 @@ export default function EditTreatment() {
               ←
             </Button>
             <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
-              Edit Treatment
+              View Treatment
             </h1>
           </div>
-
-          <Button
-            className="bg-blue-600 hover:bg-blue-700 px-6"
-            onClick={() => editMutation.mutate()}
-            disabled={editMutation.isPending}
-          >
-            {editMutation.isPending ? "Updating..." : "Publish Treatment"}
-          </Button>
         </div>
 
         <Card className="border-blue-200 shadow-sm">
@@ -171,16 +108,15 @@ export default function EditTreatment() {
               <Input
                 id="name"
                 value={treatmentName}
-                onChange={(e) => setTreatmentName(e.target.value)}
-                placeholder="Type treatment name here..."
-                className="h-11"
+                disabled
+                className="h-11 bg-gray-50"
               />
             </div>
 
             {/* Category */}
             <div className="space-y-2">
               <Label>Treatment Category</Label>
-              <Select value={category} onValueChange={setCategory}>
+              <Select value={category} disabled>
                 <SelectTrigger className="h-11">
                   <SelectValue placeholder="Select category" />
                 </SelectTrigger>
@@ -198,9 +134,8 @@ export default function EditTreatment() {
               <Label>Treatment Description</Label>
               <Textarea
                 value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Type treatment description here..."
-                className="min-h-[140px]"
+                disabled
+                className="min-h-[140px] bg-gray-50"
               />
             </div>
 
@@ -217,16 +152,6 @@ export default function EditTreatment() {
                     <h3 className="font-medium text-gray-900">
                       Question {qIndex + 1}
                     </h3>
-                    {questions.length > 1 && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="text-red-600 hover:text-red-700 hover:bg-red-50 -mt-1"
-                        onClick={() => removeQuestion(q.id)}
-                      >
-                        <Trash2 size={18} />
-                      </Button>
-                    )}
                   </div>
 
                   <div className="space-y-2">
@@ -241,8 +166,9 @@ export default function EditTreatment() {
                         <Input
                           key={i}
                           value={opt}
-                          onChange={(e) => updateOption(q.id, i, e.target.value)}
+                          disabled
                           placeholder={`Option ${i + 1}`}
+                          className="bg-gray-50"
                         />
                       ))}
                     </div>
@@ -250,10 +176,7 @@ export default function EditTreatment() {
 
                   <div className="space-y-2">
                     <Label>Correct Answer</Label>
-                    <Select
-                      value={q.correctAnswer}
-                      onValueChange={(val) => updateCorrectAnswer(q.id, val)}
-                    >
+                    <Select value={q.correctAnswer} disabled>
                       <SelectTrigger className="h-11">
                         <SelectValue placeholder="Select correct answer" />
                       </SelectTrigger>
@@ -277,6 +200,7 @@ export default function EditTreatment() {
                 </div>
               ))}
 
+              {/* Optional: allow adding questions for view mode (read-only) */}
               <Button
                 variant="outline"
                 className="w-full border-dashed border-2 py-6 text-muted-foreground hover:text-foreground hover:border-gray-400"
