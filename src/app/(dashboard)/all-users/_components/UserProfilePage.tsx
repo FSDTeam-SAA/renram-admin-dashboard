@@ -1,26 +1,94 @@
-// app/users/[id]/page.tsx   (or components/UserProfile.tsx)
 "use client";
 
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ArrowLeft, UserX } from "lucide-react";
 import Link from "next/link";
+import { useParams } from "next/navigation";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useSession } from "next-auth/react";
+
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export default function UserProfilePage() {
-  // Dummy data (in real app → fetch from API using params.id)
-  const user = {
-    fullName: "Bessie Edwards",
-    username: "@bessiedwards",
-    email: "abcgdh@gmail.com",
-    phone: "+1 (888) 000-0000",
-    address: "123 Organic Way Farmville, CA 90210",
-    city: "Farmville",
-    state: "CA",
-    zipCode: "90210",
-    avatarUrl: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&auto=format&fit=crop&q=60",
-    avatarFallback: "BE",
+  const params = useParams();
+  const userId = params.id;
+
+  const queryClient = useQueryClient();
+
+  const session = useSession();
+  const TOKEN = session?.data?.user?.accessToken || "";
+
+  // ─── Fetch Single User ─────────────────────────────
+  const {
+    data: singleUserData,
+    isLoading,
+    error,
+  } = useQuery({
+    queryKey: ["user", userId],
+    queryFn: async () => {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_API_URL}/user/${userId}`,
+        {
+          headers: {
+            // Authorization: `Bearer ${TOKEN}`,
+          },
+        }
+      );
+      if (!res.ok) throw new Error("Failed to fetch user");
+      const result = await res.json();
+      return result.data;
+    },
+  });
+
+  // ─── Status state ─────────────────────────────
+  const [status, setStatus] = useState<string>("");
+
+  // Set status from API response once loaded
+  useEffect(() => {
+    if (singleUserData) {
+      setStatus(singleUserData.status || "active"); // fallback to active
+    }
+  }, [singleUserData]);
+
+  // ─── Update User Status Mutation ─────────────────────────────
+  const updateUserMutation = useMutation({
+    mutationFn: async (updatedStatus: string) => {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_API_URL}/user/${userId}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${TOKEN}`,
+          },
+          body: JSON.stringify({ status: updatedStatus }),
+        }
+      );
+      if (!res.ok) throw new Error("Failed to update user");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["user", userId] });
+    },
+  });
+
+  if (isLoading) return <p>Loading user data...</p>;
+  if (error) return <p>Error loading user data</p>;
+
+  const user = singleUserData;
+
+  const getInitials = (firstName: string, lastName: string) => {
+    return `${firstName[0] || ""}${lastName[0] || ""}`.toUpperCase();
   };
 
   return (
@@ -42,6 +110,7 @@ export default function UserProfilePage() {
           <Button
             variant="destructive"
             className="gap-2 bg-red-600 hover:bg-red-700"
+            onClick={() => updateUserMutation.mutate(status)}
           >
             <UserX className="h-4 w-4" />
             Suspend
@@ -54,17 +123,23 @@ export default function UserProfilePage() {
           <div className="bg-gradient-to-r from-blue-50 to-indigo-50 px-6 py-8 border-b">
             <div className="flex flex-col sm:flex-row sm:items-center gap-5">
               <Avatar className="h-20 w-20 border-4 border-white shadow-md">
-                <AvatarImage src={user.avatarUrl} alt={user.fullName} />
-                <AvatarFallback className="text-2xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white">
-                  {user.avatarFallback}
-                </AvatarFallback>
+                {user?.profileImage ? (
+                  <AvatarImage src={user.profileImage} alt={user.firstName} />
+                ) : (
+                  <AvatarFallback className="text-2xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white">
+                    {getInitials(user.firstName, user.lastName)}
+                  </AvatarFallback>
+                )}
               </Avatar>
 
               <div>
                 <h2 className="text-2xl font-bold text-gray-900">
-                  {user.fullName}
+                  {user.firstName} {user.lastName}
                 </h2>
-                <p className="text-gray-600 mt-1">{user.username}</p>
+                <p className="text-gray-600 mt-1">
+                  @{user.firstName.toLowerCase()}
+                  {user.lastName.toLowerCase()}
+                </p>
               </div>
             </div>
           </div>
@@ -77,14 +152,22 @@ export default function UserProfilePage() {
                 <Label htmlFor="fullName" className="text-sm font-medium">
                   Full Name
                 </Label>
-                <Input id="fullName" value={user.fullName} readOnly />
+                <Input
+                  id="fullName"
+                  value={`${user.firstName} ${user.lastName}`}
+                  readOnly
+                />
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="username" className="text-sm font-medium">
                   User name
                 </Label>
-                <Input id="username" value={user.username} readOnly />
+                <Input
+                  id="username"
+                  value={`@${user.firstName.toLowerCase()}${user.lastName.toLowerCase()}`}
+                  readOnly
+                />
               </div>
             </div>
 
@@ -101,8 +184,24 @@ export default function UserProfilePage() {
                 <Label htmlFor="phone" className="text-sm font-medium">
                   Phone number
                 </Label>
-                <Input id="phone" value={user.phone} readOnly />
+                <Input id="phone" value={user.phoneNumber} readOnly />
               </div>
+            </div>
+
+            {/* Status Select */}
+            <div className="space-y-2">
+              <Label htmlFor="status" className="text-sm font-medium">
+                Status
+              </Label>
+              <Select value={status} onValueChange={(val) => setStatus(val)}>
+                <SelectTrigger className="w-full">
+                  <SelectValue>{status}</SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="block">Blocked</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             {/* Address */}
@@ -117,23 +216,23 @@ export default function UserProfilePage() {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
               <div className="space-y-2">
                 <Label htmlFor="city" className="text-sm font-medium">
-                  City
+                  Location
                 </Label>
-                <Input id="city" value={user.city} readOnly />
+                <Input id="city" value={user.location} readOnly />
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="state" className="text-sm font-medium">
-                  State
+                  Role
                 </Label>
-                <Input id="state" value={user.state} readOnly />
+                <Input id="state" value={user.role} readOnly />
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="zip" className="text-sm font-medium">
-                  Zip Code
+                  Post Code
                 </Label>
-                <Input id="zip" value={user.zipCode} readOnly />
+                <Input id="zip" value={user.postCode} readOnly />
               </div>
             </div>
           </div>

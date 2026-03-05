@@ -12,118 +12,61 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Eye } from "lucide-react";
+import { ChevronLeft, ChevronRight, Eye } from "lucide-react";
 import Link from "next/link";
-
-// Dummy data (you can replace with real API data later)
-const dummyUsers = [
-  {
-    id: 1,
-    name: "Cameron Williamson",
-    mobile: "+447009960054",
-    email: "debra.holt@example.com",
-    avatarColor: "bg-pink-500",
-  },
-  {
-    id: 2,
-    name: "Jacob Jones",
-    mobile: "+447009960748",
-    email: "jacob.graham@example.com",
-    avatarColor: "bg-purple-500",
-  },
-  {
-    id: 3,
-    name: "Arlene McCoy",
-    mobile: "+447009960054",
-    email: "deanna.curtis@example.com",
-    avatarColor: "bg-cyan-500",
-  },
-  {
-    id: 4,
-    name: "Devon Lane",
-    mobile: "+447009960180",
-    email: "alma.lawson@example.com",
-    avatarColor: "bg-emerald-500",
-  },
-  {
-    id: 5,
-    name: "Cody Fisher",
-    mobile: "+447009960426",
-    email: "sara.cruz@example.com",
-    avatarColor: "bg-amber-500",
-  },
-  {
-    id: 6,
-    name: "Darrell Steward",
-    mobile: "+447009960183",
-    email: "nathan.roberts@example.com",
-    avatarColor: "bg-rose-500",
-  },
-  {
-    id: 7,
-    name: "Leslie Alexander",
-    mobile: "+447009960160",
-    email: "michelle.rivera@example.com",
-    avatarColor: "bg-indigo-500",
-  },
-  {
-    id: 8,
-    name: "Robert Fox",
-    mobile: "+447009960137",
-    email: "tanya.hills@example.com",
-    avatarColor: "bg-teal-500",
-  },
-  {
-    id: 9,
-    name: "Marvin McKinney",
-    mobile: "+447009960617",
-    email: "tim.jennings@example.com",
-    avatarColor: "bg-orange-500",
-  },
-  {
-    id: 10,
-    name: "Marvin McKinney",
-    mobile: "+447009960974",
-    email: "curtis.weaver@example.com",
-    avatarColor: "bg-lime-500",
-  },
-  {
-    id: 11,
-    name: "Marvin McKinney",
-    mobile: "+447009960063",
-    email: "michael.mitc@example.com",
-    avatarColor: "bg-fuchsia-500",
-  },
-  {
-    id: 12,
-    name: "Marvin McKinney",
-    mobile: "+447009960378",
-    email: "willie.jennings@example.com",
-    avatarColor: "bg-sky-500",
-  },
-];
+import { useQuery } from "@tanstack/react-query";
+import { useSession } from "next-auth/react";
 
 const ITEMS_PER_PAGE = 10;
 
+type User = {
+  _id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phoneNumber: string;
+  profilePicture?: string;
+};
+
 export default function AllUsers() {
   const [currentPage, setCurrentPage] = useState(1);
+  const session = useSession();
+  const TOKEn = session?.data?.user?.accessToken || ""; // Safely access the token
 
-  const totalItems = dummyUsers.length;
+  // ─── Fetch API Users ─────────────────────────────
+  const {
+    data: users = [],
+    isLoading,
+    error,
+  } = useQuery<User[]>({
+    queryKey: ["users"],
+    queryFn: async () => {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_API_URL}/user/all-users`,
+        {
+          headers: {
+            Authorization: `Bearer ${TOKEn}`,
+          },
+        },
+      );
+      if (!res.ok) throw new Error("Failed to fetch users");
+      const result = await res.json();
+      return result.data || [];
+    },
+  });
+
+  const totalItems = users.length;
   const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
 
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-  const paginatedUsers = dummyUsers.slice(
-    startIndex,
-    startIndex + ITEMS_PER_PAGE,
-  );
+  const paginatedUsers = users.slice(startIndex, startIndex + ITEMS_PER_PAGE);
 
-  const getInitials = (name: string) => {
-    const parts = name.trim().split(" ");
-    if (parts.length >= 2) {
-      return (parts[0][0] + parts[1][0]).toUpperCase();
-    }
-    return name.slice(0, 2).toUpperCase();
+  const getInitials = (firstName: string, lastName: string) => {
+    return `${firstName[0] || ""}${lastName[0] || ""}`.toUpperCase();
   };
+
+  if (isLoading) return <p>Loading users...</p>;
+  if (error) return <p>Error loading users</p>;
 
   return (
     <div className="">
@@ -147,24 +90,26 @@ export default function AllUsers() {
           </TableHeader>
           <TableBody>
             {paginatedUsers.map((user) => (
-              <TableRow key={user.id} className="hover:bg-gray-50/70">
+              <TableRow key={user._id} className="hover:bg-gray-50/70">
                 <TableCell className="pl-6 font-medium py-3">
                   <div className="flex items-center gap-3">
                     <Avatar className="h-9 w-9">
-                      <AvatarFallback
-                        className={`${user.avatarColor} text-white font-medium`}
-                      >
-                        {getInitials(user.name)}
+                      <AvatarFallback className="bg-gray-500 text-white font-medium">
+                        {getInitials(user.firstName, user.lastName)}
                       </AvatarFallback>
                     </Avatar>
-                    <span>{user.name}</span>
+                    <span>
+                      {user.firstName} {user.lastName}
+                    </span>
                   </div>
                 </TableCell>
-                <TableCell className="text-gray-600">{user.mobile}</TableCell>
+                <TableCell className="text-gray-600">
+                  {user.phoneNumber}
+                </TableCell>
                 <TableCell className="text-gray-600">{user.email}</TableCell>
                 <TableCell className="text-center">
                   <div className="flex items-center justify-center gap-3">
-                    <Link href={`/all-users/view-userinfo/${user?.id}`}>
+                    <Link href={`/all-users/view-userinfo/${user._id}`}>
                       <Button
                         variant="ghost"
                         size="icon"
@@ -173,9 +118,11 @@ export default function AllUsers() {
                         <Eye className="h-4 w-4 text-gray-600" />
                       </Button>
                     </Link>
+                    <Link href={`/all-users/view-userinfo/${user._id}`}>
                     <button className="bg-red-600 hover:bg-red-700 text-white text-xs font-medium px-4 py-1.5 rounded-full transition-all duration-200 shadow-sm active:scale-95">
                       Suspend
                     </button>
+                    </Link>
                   </div>
                 </TableCell>
               </TableRow>
@@ -185,49 +132,62 @@ export default function AllUsers() {
       </div>
 
       {/* Footer - Showing info + Pagination */}
-      <div className="mt-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <p className="text-sm text-muted-foreground">
-          Showing {startIndex + 1} to{" "}
-          {Math.min(startIndex + ITEMS_PER_PAGE, totalItems)} of {totalItems}{" "}
-          results
-        </p>
+      {totalPages > 1 && (
+        <div className="flex flex-col sm:flex-row items-center justify-between mt-6 gap-4">
+          {totalItems > 0 && (
+            <div className="text-sm text-gray-500">
+              Showing {startIndex + 1}–
+              {Math.min(startIndex + ITEMS_PER_PAGE, totalItems)} of{" "}
+              {totalItems}
+            </div>
+          )}
 
-        <div className="flex items-center gap-1.5">
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={currentPage === 1}
-            onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-            className="h-9 px-3"
-          >
-            Previous
-          </Button>
-
-          {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-            <Button
-              key={page}
-              variant={page === currentPage ? "default" : "outline"}
-              size="sm"
-              className={`h-9 w-9 p-0 ${page === currentPage ? "bg-blue-600 hover:bg-blue-700" : ""}`}
-              onClick={() => setCurrentPage(page)}
+          <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3">
+            {/* Previous Button */}
+            <button
+              onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+              disabled={currentPage === 1}
+              className={`flex items-center justify-center h-10 w-10 rounded-md border transition-colors duration-200 ${
+                currentPage === 1
+                  ? "bg-gray-100 text-gray-400 cursor-not-allowed border-gray-200"
+                  : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50 active:bg-gray-100"
+              }`}
             >
-              {page}
-            </Button>
-          ))}
+              <ChevronLeft className="w-5 h-5" />
+            </button>
 
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={currentPage === totalPages}
-            onClick={() =>
-              setCurrentPage((prev) => Math.min(prev + 1, totalPages))
-            }
-            className="h-9 px-3"
-          >
-            Next
-          </Button>
+            {/* Page Numbers */}
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+              <button
+                key={page}
+                onClick={() => setCurrentPage(page)}
+                className={`flex items-center justify-center h-10 w-10 rounded-md border text-sm font-medium transition-all duration-200 ${
+                  page === currentPage
+                    ? "bg-blue-600 text-white border-blue-600 font-semibold shadow-sm"
+                    : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50 active:bg-gray-100"
+                }`}
+              >
+                {page}
+              </button>
+            ))}
+
+            {/* Next Button */}
+            <button
+              onClick={() =>
+                setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+              }
+              disabled={currentPage === totalPages}
+              className={`flex items-center justify-center h-10 w-10 rounded-md border transition-colors duration-200 ${
+                currentPage === totalPages
+                  ? "bg-gray-100 text-gray-400 cursor-not-allowed border-gray-200"
+                  : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50 active:bg-gray-100"
+              }`}
+            >
+              <ChevronRight className="w-5 h-5" />
+            </button>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
