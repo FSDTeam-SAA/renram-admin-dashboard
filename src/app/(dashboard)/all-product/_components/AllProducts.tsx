@@ -1,18 +1,28 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { Pencil, Eye, Trash2 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { useSession } from "next-auth/react";
 
 interface Product {
   _id: string;
   name: string;
-  image: string[]; // API theke array of images
+  image: string[];
 }
 
 function AllProducts() {
+  const queryClient = useQueryClient();
+  const [deleteProductId, setDeleteProductId] = useState<string | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const session = useSession();
+  const TOKEN = session?.data?.user?.accessToken;
+
+  // ─── Fetch Products ─────────────────────────────
   const { data, isLoading, error } = useQuery({
     queryKey: ["products"],
     queryFn: async () => {
@@ -21,6 +31,26 @@ function AllProducts() {
       const result = await res.json();
       return result?.data || [];
     },
+  });
+
+  // ─── Delete Mutation ─────────────────────────────
+  const deleteMutation = useMutation({
+    mutationFn: async (productId: string) => {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_API_URL}/product/${productId}`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" , Authorization: `Bearer ${TOKEN}` },
+      });
+      if (!res.ok) throw new Error("Failed to delete product");
+      return res.json();
+    },
+    onSuccess: (_, productId) => {
+      queryClient.setQueryData<Product[]>(["products"], (oldData) =>
+        oldData?.filter((p) => p._id !== productId) || []
+      );
+      setIsModalOpen(false);
+      setDeleteProductId(null);
+    },
+    onError: (err) => console.error("Error deleting product:", err),
   });
 
   if (isLoading) return <p>Loading products...</p>;
@@ -71,7 +101,14 @@ function AllProducts() {
                     </button>
                   </Link>
 
-                  <button className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-red-100 transition-all duration-200 hover:scale-105">
+                  {/* Delete Button triggers modal */}
+                  <button
+                    onClick={() => {
+                      setDeleteProductId(product._id);
+                      setIsModalOpen(true);
+                    }}
+                    className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-red-100 transition-all duration-200 hover:scale-105"
+                  >
                     <Trash2 size={13} className="text-red-500" />
                   </button>
                 </div>
@@ -79,14 +116,38 @@ function AllProducts() {
 
               {/* Product Name */}
               <div className="px-3 py-2.5 bg-white">
-                <p className="text-xl font-medium text-gray-800">
-                  {product.name}
-                </p>
+                <p className="text-xl font-medium text-gray-800">{product.name}</p>
               </div>
             </div>
           ))}
         </div>
       </div>
+
+      {/* ─── Delete Confirmation Modal ───────────────────────────── */}
+      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle>Delete Product</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this product? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex justify-end gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setIsModalOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => deleteProductId && deleteMutation.mutate(deleteProductId)}
+            >
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
