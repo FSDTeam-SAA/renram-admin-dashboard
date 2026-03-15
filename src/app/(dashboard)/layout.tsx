@@ -1,8 +1,11 @@
 import Header from "@/components/share/Header";
 import { Sidebar } from "@/components/share/Sidebar";
+// import { useSession } from "next-auth/react";
 import React from "react";
 
 function layout({ children }: { children: React.ReactNode }) {
+  // const session = useSession();
+  // console.log(session?.data);
   return (
     <div className="h-screen flex flex-col">
       <Header />

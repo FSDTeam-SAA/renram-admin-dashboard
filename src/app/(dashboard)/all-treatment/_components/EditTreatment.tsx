@@ -11,13 +11,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Trash2, Plus } from "lucide-react";
+import { Trash2, Plus, ArrowLeft } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import dynamic from "next/dynamic";
 import "react-quill/dist/quill.snow.css";
+import Link from "next/link";
 
 const ReactQuill = dynamic(() => import("react-quill"), { ssr: false });
 
@@ -149,9 +150,11 @@ export default function EditTreatment() {
         {/* Header */}
         <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" className="rounded-full">
-              ←
-            </Button>
+           <Link href="/all-treatment">
+              <button className="text-gray-600 hover:text-gray-800 transition-colors">
+                <ArrowLeft size={20} />
+              </button>
+            </Link>
             <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
               Edit Treatment
             </h1>

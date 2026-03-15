@@ -1,3 +1,5 @@
+"use client";
+
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -10,14 +12,12 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { LogOut } from "lucide-react";
+import { signOut } from "next-auth/react";
 
 export function LogoutModal() {
-  const handleLogout = () => {
-    // 👉 এখানে তোমার logout logic দাও
-    // example:
-    // localStorage.removeItem("token")
-    // router.push("/login")
-    console.log("User logged out");
+
+  const handleLogout = async () => {
+    await signOut({ callbackUrl: "/signin" });
   };
 
   return (
@@ -25,7 +25,9 @@ export function LogoutModal() {
       <DialogTrigger asChild>
         <div className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-slate-300 transition-all duration-200 hover:bg-slate-600/50 hover:text-white cursor-pointer">
           <LogOut className="h-5 w-5 text-red-600" />
-          <span className="font-normal text-base leading-none text-red-600">Log Out</span>
+          <span className="font-normal text-base leading-none text-red-600">
+            Log Out
+          </span>
         </div>
       </DialogTrigger>
 
@@ -43,11 +45,9 @@ export function LogoutModal() {
             <Button variant="outline">Cancel</Button>
           </DialogClose>
 
-          <DialogClose asChild>
-            <Button variant="destructive" onClick={handleLogout}>
-              Logout
-            </Button>
-          </DialogClose>
+          <Button variant="destructive" onClick={handleLogout}>
+            Logout
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

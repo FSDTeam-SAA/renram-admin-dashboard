@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Skeleton } from "@/components/ui/skeleton";
 import { ChevronLeft, ChevronRight, Eye } from "lucide-react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
@@ -31,7 +32,7 @@ type User = {
 export default function AllUsers() {
   const [currentPage, setCurrentPage] = useState(1);
   const session = useSession();
-  const TOKEn = session?.data?.user?.accessToken || ""; // Safely access the token
+  const TOKEn = session?.data?.user?.accessToken || "";
 
   // ─── Fetch API Users ─────────────────────────────
   const {
@@ -65,7 +66,6 @@ export default function AllUsers() {
     return `${firstName[0] || ""}${lastName[0] || ""}`.toUpperCase();
   };
 
-  if (isLoading) return <p>Loading users...</p>;
   if (error) return <p>Error loading users</p>;
 
   return (
@@ -89,44 +89,69 @@ export default function AllUsers() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {paginatedUsers.map((user) => (
-              <TableRow key={user._id} className="hover:bg-gray-50/70">
-                <TableCell className="pl-6 font-medium py-3">
-                  <div className="flex items-center gap-3">
-                    <Avatar className="h-9 w-9">
-                      <AvatarFallback className="bg-gray-500 text-white font-medium">
-                        {getInitials(user.firstName, user.lastName)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <span>
-                      {user.firstName} {user.lastName}
-                    </span>
-                  </div>
-                </TableCell>
-                <TableCell className="text-gray-600">
-                  {user.phoneNumber}
-                </TableCell>
-                <TableCell className="text-gray-600">{user.email}</TableCell>
-                <TableCell className="text-center">
-                  <div className="flex items-center justify-center gap-3">
-                    <Link href={`/all-users/view-userinfo/${user._id}`}>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 border border-[#0024DA]"
-                      >
-                        <Eye className="h-4 w-4 text-gray-600" />
-                      </Button>
-                    </Link>
-                    <Link href={`/all-users/view-userinfo/${user._id}`}>
-                    <button className="bg-red-600 hover:bg-red-700 text-white text-xs font-medium px-4 py-1.5 rounded-full transition-all duration-200 shadow-sm active:scale-95">
-                      Suspend
-                    </button>
-                    </Link>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
+            {isLoading
+              ? // ─── Skeleton Rows ─────────────────────────────────
+                Array.from({ length: 5 }).map((_, i) => (
+                  <TableRow key={i}>
+                    <TableCell className="pl-6 py-3">
+                      <div className="flex items-center gap-3">
+                        <Skeleton className="h-9 w-9 rounded-full flex-shrink-0" />
+                        <Skeleton className="h-4 w-32" />
+                      </div>
+                    </TableCell>
+                    <TableCell className="py-3">
+                      <Skeleton className="h-4 w-28" />
+                    </TableCell>
+                    <TableCell className="py-3">
+                      <Skeleton className="h-4 w-44" />
+                    </TableCell>
+                    <TableCell className="py-3">
+                      <div className="flex items-center justify-center gap-3">
+                        <Skeleton className="h-8 w-8 rounded-md" />
+                        <Skeleton className="h-7 w-16 rounded-full" />
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              : // ─── Real Rows ──────────────────────────────────────
+                paginatedUsers.map((user) => (
+                  <TableRow key={user._id} className="hover:bg-gray-50/70">
+                    <TableCell className="pl-6 font-medium py-3">
+                      <div className="flex items-center gap-3">
+                        <Avatar className="h-9 w-9">
+                          <AvatarFallback className="bg-gray-500 text-white font-medium">
+                            {getInitials(user.firstName, user.lastName)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <span>
+                          {user.firstName} {user.lastName}
+                        </span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-gray-600">
+                      {user.phoneNumber}
+                    </TableCell>
+                    <TableCell className="text-gray-600">{user.email}</TableCell>
+                    <TableCell className="text-center">
+                      <div className="flex items-center justify-center gap-3">
+                        <Link href={`/all-users/view-userinfo/${user._id}`}>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 border border-[#0024DA]"
+                          >
+                            <Eye className="h-4 w-4 text-gray-600" />
+                          </Button>
+                        </Link>
+                        <Link href={`/all-users/view-userinfo/${user._id}`}>
+                          <button className="bg-red-600 hover:bg-red-700 text-white text-xs font-medium px-4 py-1.5 rounded-full transition-all duration-200 shadow-sm active:scale-95">
+                            Suspend
+                          </button>
+                        </Link>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
           </TableBody>
         </Table>
       </div>

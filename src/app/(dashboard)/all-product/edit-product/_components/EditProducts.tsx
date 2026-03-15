@@ -6,6 +6,7 @@ import Image from "next/image";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useParams } from "next/navigation";
 import { useSession } from "next-auth/react";
+import Link from "next/link";
 
 const categories = [
   "NAD+",
@@ -160,9 +161,11 @@ function EditProducts() {
     <div className="min-h-screen">
       {/* Top Header */}
       <div className="px-6 py-3 flex items-center justify-between">
-        <button className="text-gray-600 hover:text-gray-800 transition-colors">
+        <Link href="/all-product">
+         <button className="text-gray-600 hover:text-gray-800 transition-colors">
           <ArrowLeft size={20} />
         </button>
+       </Link>
         <h1 className="text-[36px] leading-[120px] font-bold text-[#000000]">
           Edit Product
         </h1>

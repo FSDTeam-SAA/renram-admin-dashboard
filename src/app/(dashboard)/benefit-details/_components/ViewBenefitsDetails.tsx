@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+// import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -12,10 +12,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus } from "lucide-react";
+import { ArrowLeft, Plus } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { useQuery } from "@tanstack/react-query";
 import { useParams } from "next/navigation";
+import Link from "next/link";
 
 type Question = {
   id: number;
@@ -44,7 +45,7 @@ export default function ViewBenefitsDetails() {
     queryKey: ["singleTreatment", treatmentId],
     queryFn: async () => {
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_BACKEND_API_URL}/treatment/${treatmentId}`
+        `${process.env.NEXT_PUBLIC_BACKEND_API_URL}/treatment-benefit/${treatmentId}`
       );
       if (!res.ok) throw new Error("Failed to fetch treatment");
       const result = await res.json();
@@ -55,7 +56,7 @@ export default function ViewBenefitsDetails() {
   // ─── Populate default input values ───────────────────
   useEffect(() => {
     if (singleTreatment) {
-      setTreatmentName(singleTreatment.name || "");
+      setTreatmentName(singleTreatment.title || "");
       setCategory(singleTreatment.category || "");
       setDescription(singleTreatment.description || "");
       setQuestions(
@@ -91,9 +92,11 @@ export default function ViewBenefitsDetails() {
         {/* Header */}
         <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" className="rounded-full">
-              ←
-            </Button>
+            <Link href="/benefit-details">
+              <button className="text-gray-600 hover:text-gray-800 transition-colors">
+                <ArrowLeft size={20} />
+              </button>
+            </Link>
             <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
               View Treatment
             </h1>
@@ -130,14 +133,13 @@ export default function ViewBenefitsDetails() {
             </div>
 
             {/* Description */}
-            <div className="space-y-2">
-              <Label>Treatment Description</Label>
-              <Textarea
-                value={description}
-                disabled
-                className="min-h-[140px] bg-gray-50"
-              />
-            </div>
+<div className="space-y-2">
+  <Label>Treatment Description</Label>
+  <div
+    className="min-h-[140px] bg-gray-50 p-2 rounded border"
+    dangerouslySetInnerHTML={{ __html: description || "" }}
+  />
+</div>
 
             {/* Questions */}
             <div className="space-y-6 pt-6 border-t">

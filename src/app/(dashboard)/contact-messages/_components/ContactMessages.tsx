@@ -11,6 +11,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Mail } from "lucide-react";
 import { ViewContactModal } from "@/components/Dialogs/ViewContactModal";
 import { DeleteModal } from "@/components/Dialogs/DeleteModal";
@@ -24,7 +25,6 @@ export default function ContactMessages() {
   const session = useSession();
   const TOKEN = session?.data?.user?.accessToken;
 
-  // Fetch real contact messages from API
   const { data: contactMessages, isLoading, error } = useQuery({
     queryKey: ["contactMessages"],
     queryFn: async () => {
@@ -34,17 +34,16 @@ export default function ContactMessages() {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${TOKEN}`, // include token if needed
+            Authorization: `Bearer ${TOKEN}`,
           },
         }
       );
       if (!res.ok) throw new Error("Failed to fetch contact messages");
       const result = await res.json();
-      return result.data; // API returns { data: [...] }
+      return result.data;
     },
   });
 
-  if (isLoading) return <p>Loading messages...</p>;
   if (error) return <p>Error loading messages</p>;
 
   const totalItems = contactMessages?.length || 0;
@@ -79,37 +78,72 @@ export default function ContactMessages() {
           </TableHeader>
 
           <TableBody>
-            {paginatedMessages?.map((msg: any) => (
-              <TableRow
-                key={msg._id}
-                className="hover:bg-gray-50/70 transition-colors"
-              >
-                <TableCell className="pl-6 font-medium py-3">
-                  <div className="flex flex-col">
-                    <span>{msg.name}</span>
-                    <span className="text-sm text-muted-foreground">
-                      {msg.email}
-                    </span>
-                  </div>
-                </TableCell>
-                <TableCell className="text-gray-600">{msg.phoneNumber}</TableCell>
-                <TableCell className="text-gray-700">{msg.message}</TableCell>
-                <TableCell className="text-gray-600">
-                  {new Date(msg.createdAt).toLocaleDateString()}
-                </TableCell>
-                <TableCell className="text-center">
-                  <div className="flex justify-center">
-                    <Mail className="h-5 w-5 text-blue-600" />
-                  </div>
-                </TableCell>
-                <TableCell className="text-center">
-                  <div className="flex items-center justify-center gap-2">
-                    <ViewContactModal contactMessage={msg} />
-                    <DeleteModal messageId={msg._id} />
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
+            {isLoading
+              ? // ─── Skeleton Rows ────────────────────────────────
+                Array.from({ length: 5 }).map((_, i) => (
+                  <TableRow key={i}>
+                    <TableCell className="pl-6 py-3">
+                      <div className="flex flex-col gap-1.5">
+                        <Skeleton className="h-4 w-28" />
+                        <Skeleton className="h-3 w-36" />
+                      </div>
+                    </TableCell>
+                    <TableCell className="py-3">
+                      <Skeleton className="h-4 w-28" />
+                    </TableCell>
+                    <TableCell className="py-3">
+                      <Skeleton className="h-4 w-48" />
+                    </TableCell>
+                    <TableCell className="py-3">
+                      <Skeleton className="h-4 w-24" />
+                    </TableCell>
+                    <TableCell className="py-3">
+                      <div className="flex justify-center">
+                        <Skeleton className="h-5 w-5 rounded-full" />
+                      </div>
+                    </TableCell>
+                    <TableCell className="py-3">
+                      <div className="flex items-center justify-center gap-2">
+                        <Skeleton className="h-8 w-8 rounded-md" />
+                        <Skeleton className="h-8 w-8 rounded-md" />
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              : // ─── Real Rows ────────────────────────────────────
+                paginatedMessages?.map((msg: any) => (
+                  <TableRow
+                    key={msg._id}
+                    className="hover:bg-gray-50/70 transition-colors"
+                  >
+                    <TableCell className="pl-6 font-medium py-3">
+                      <div className="flex flex-col">
+                        <span>{msg.name}</span>
+                        <span className="text-sm text-muted-foreground">
+                          {msg.email}
+                        </span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-gray-600">
+                      {msg.phoneNumber}
+                    </TableCell>
+                    <TableCell className="text-gray-700">{msg.message}</TableCell>
+                    <TableCell className="text-gray-600">
+                      {new Date(msg.createdAt).toLocaleDateString()}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <div className="flex justify-center">
+                        <Mail className="h-5 w-5 text-blue-600" />
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <div className="flex items-center justify-center gap-2">
+                        <ViewContactModal contactMessage={msg} />
+                        <DeleteModal messageId={msg._id} />
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
           </TableBody>
         </Table>
       </div>

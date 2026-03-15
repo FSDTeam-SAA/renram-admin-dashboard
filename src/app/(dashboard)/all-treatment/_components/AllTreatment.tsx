@@ -75,9 +75,7 @@ export default function AllTreatments() {
       return res.json();
     },
     onSuccess: () => {
-
       queryClient.invalidateQueries({ queryKey: ["treatments"] });
-
       setModalOpen(false);
       goToPage(1);
     },
@@ -86,7 +84,51 @@ export default function AllTreatments() {
     },
   });
 
-  if (isLoading) return <p>Loading treatments...</p>;
+  if (isLoading) return (
+    <section className="py-12 md:py-16 lg:py-20">
+      <div className="">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-10">
+          <div className="flex-1 text-center">
+            <h1 className="text-[36px] leading-[120px] font-bold text-[#000000]">
+              All Treatment
+            </h1>
+          </div>
+          <Link href="/all-treatment/add-treatment">
+            <button className="bg-[#0024DA] hover:bg-[#0024DA]/90 text-white text-sm font-medium px-4 h-[48px] transition-colors duration-200 whitespace-nowrap rounded-[8px]">
+              Add new +
+            </button>
+          </Link>
+        </div>
+
+        {/* Skeleton Cards */}
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:gap-8 min-h-[400px]">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="animate-pulse border rounded-lg overflow-hidden flex flex-col p-5 gap-4">
+              {/* Title skeleton */}
+              <div className="h-7 w-2/3 bg-gray-200 rounded" />
+              {/* Description skeleton */}
+              <div className="space-y-2">
+                <div className="h-4 w-full bg-gray-200 rounded" />
+                <div className="h-4 w-5/6 bg-gray-200 rounded" />
+                <div className="h-4 w-4/6 bg-gray-200 rounded" />
+              </div>
+              {/* Questions skeleton */}
+              <div className="space-y-2.5 mt-2">
+                {Array.from({ length: 3 }).map((_, j) => (
+                  <div key={j} className="flex items-center gap-2">
+                    <div className="h-4 w-4 bg-gray-200 rounded-full flex-shrink-0" />
+                    <div className="h-4 bg-gray-200 rounded w-full" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+
   if (error) return <p>Error loading treatments</p>;
 
   const totalItems = data?.length || 0;
@@ -164,38 +206,28 @@ export default function AllTreatments() {
               </div>
 
               <CardHeader className="pb-4">
-  <div className="flex items-center justify-between gap-3 pr-28">
-    <CardTitle
-      className="text-2xl"
-      dangerouslySetInnerHTML={{
-        __html: treatment.name || "",
-      }}
-    />
-  </div>
+                <div className="flex items-center justify-between gap-3 pr-28">
+                  <CardTitle
+                    className="text-2xl"
+                    dangerouslySetInnerHTML={{ __html: treatment.name || "" }}
+                  />
+                </div>
+                <CardDescription
+                  className="pt-2 text-base leading-relaxed"
+                  dangerouslySetInnerHTML={{ __html: treatment.description || "" }}
+                />
+              </CardHeader>
 
-  <CardDescription
-    className="pt-2 text-base leading-relaxed"
-    dangerouslySetInnerHTML={{
-      __html: treatment.description || "",
-    }}
-  />
-</CardHeader>
-
-<CardContent className="flex-1 pb-6">
-  <ul className="space-y-2.5 text-sm">
-    {treatment.treatmentQuestions.map((question, i) => (
-      <li key={i} className="flex items-start gap-2">
-        <span className="text-green-600 text-base mt-0.5">✔</span>
-
-        <span
-          dangerouslySetInnerHTML={{
-            __html: question.question || "",
-          }}
-        />
-      </li>
-    ))}
-  </ul>
-</CardContent>
+              <CardContent className="flex-1 pb-6">
+                <ul className="space-y-2.5 text-sm">
+                  {treatment.treatmentQuestions.map((question, i) => (
+                    <li key={i} className="flex items-start gap-2">
+                      <span className="text-green-600 text-base mt-0.5">✔</span>
+                      <span dangerouslySetInnerHTML={{ __html: question.question || "" }} />
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
             </Card>
           ))}
         </div>
@@ -223,21 +255,19 @@ export default function AllTreatments() {
                 <ChevronLeft className="w-5 h-5" />
               </button>
 
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map(
-                (page) => (
-                  <button
-                    key={page}
-                    onClick={() => goToPage(page)}
-                    className={`flex items-center justify-center h-10 w-10 rounded-md border text-sm font-medium transition-all duration-200 ${
-                      page === currentPage
-                        ? "bg-blue-600 text-white border-blue-600 font-semibold shadow-sm"
-                        : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50 active:bg-gray-100"
-                    }`}
-                  >
-                    {page}
-                  </button>
-                ),
-              )}
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                <button
+                  key={page}
+                  onClick={() => goToPage(page)}
+                  className={`flex items-center justify-center h-10 w-10 rounded-md border text-sm font-medium transition-all duration-200 ${
+                    page === currentPage
+                      ? "bg-blue-600 text-white border-blue-600 font-semibold shadow-sm"
+                      : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50 active:bg-gray-100"
+                  }`}
+                >
+                  {page}
+                </button>
+              ))}
 
               <button
                 onClick={() => goToPage(currentPage + 1)}
@@ -261,10 +291,7 @@ export default function AllTreatments() {
               <DialogTitle>Delete Treatment</DialogTitle>
               <DialogDescription>
                 Are you sure you want to delete{" "}
-                <span className="font-semibold">
-                  {selectedTreatment?.name}
-                </span>
-                ? This action cannot be undone.
+                <span className="font-semibold">{selectedTreatment?.name}</span>? This action cannot be undone.
               </DialogDescription>
             </DialogHeader>
             <DialogFooter className="flex justify-end gap-2">

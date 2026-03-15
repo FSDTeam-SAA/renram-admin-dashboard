@@ -50,9 +50,7 @@ const ITEMS_PER_PAGE = 9;
 export default function AllTreatments() {
   const [currentPage, setCurrentPage] = useState(1);
   const [modalOpen, setModalOpen] = useState(false);
-  const [selectedTreatment, setSelectedTreatment] = useState<Treatment | null>(
-    null,
-  );
+  const [selectedTreatment, setSelectedTreatment] = useState<Treatment | null>(null);
 
   const queryClient = useQueryClient();
   const session = useSession();
@@ -97,17 +95,60 @@ export default function AllTreatments() {
     },
   });
 
-  if (isLoading) return <p>Loading treatments...</p>;
+  // ─── Skeleton ─────────────────────────────────────────
+  if (isLoading) return (
+    <section className="py-12 md:py-16 lg:py-20">
+      <div className="">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-10">
+          <div className="flex-1 text-center">
+            <h1 className="text-[36px] font-bold text-[#000000]">All Treatment</h1>
+          </div>
+          <Link href="/benefit-details/add-benefits">
+            <button className="bg-[#0024DA] hover:bg-[#0024DA]/90 text-white text-sm font-medium px-4 h-[48px] transition-colors duration-200 whitespace-nowrap rounded-[8px]">
+              Add new +
+            </button>
+          </Link>
+        </div>
+
+        {/* Skeleton Cards */}
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:gap-8 min-h-[400px]">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="animate-pulse border rounded-lg overflow-hidden flex flex-col p-5 gap-4">
+              {/* Title skeleton */}
+              <div className="h-7 w-2/3 bg-gray-200 rounded" />
+              {/* Category skeleton */}
+              <div className="h-4 w-1/3 bg-gray-200 rounded" />
+              {/* Description skeleton */}
+              <div className="space-y-2">
+                <div className="h-4 w-full bg-gray-200 rounded" />
+                <div className="h-4 w-5/6 bg-gray-200 rounded" />
+                <div className="h-4 w-4/6 bg-gray-200 rounded" />
+                <div className="h-4 w-3/6 bg-gray-200 rounded" />
+              </div>
+              {/* Questions skeleton */}
+              <div className="space-y-2.5 mt-2">
+                {Array.from({ length: 3 }).map((_, j) => (
+                  <div key={j} className="flex items-center gap-2">
+                    <div className="h-4 w-4 bg-gray-200 rounded-full flex-shrink-0" />
+                    <div className="h-4 bg-gray-200 rounded w-full" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+
   if (error) return <p>Error loading treatments</p>;
 
   const totalItems = data?.length || 0;
   const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
 
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-  const currentItems = (data || []).slice(
-    startIndex,
-    startIndex + ITEMS_PER_PAGE,
-  );
+  const currentItems = (data || []).slice(startIndex, startIndex + ITEMS_PER_PAGE);
 
   const goToPage = (page: number) => {
     if (page >= 1 && page <= totalPages) setCurrentPage(page);
@@ -196,15 +237,10 @@ export default function AllTreatments() {
 
               <CardHeader className="pb-3">
                 <div className="pr-24">
-                  {/* Title */}
                   <CardTitle
                     className="text-2xl mb-1"
-                    dangerouslySetInnerHTML={{
-                      __html: treatment.title || "",
-                    }}
+                    dangerouslySetInnerHTML={{ __html: treatment.title || "" }}
                   />
-
-                  {/* Category */}
                   <p
                     className="text-sm text-gray-500 font-medium"
                     dangerouslySetInnerHTML={{
@@ -212,13 +248,9 @@ export default function AllTreatments() {
                     }}
                   />
                 </div>
-
-                {/* Description */}
                 <CardDescription
                   className="pt-2 text-base leading-relaxed line-clamp-4"
-                  dangerouslySetInnerHTML={{
-                    __html: treatment.description || "",
-                  }}
+                  dangerouslySetInnerHTML={{ __html: treatment.description || "" }}
                 />
               </CardHeader>
 
@@ -227,12 +259,7 @@ export default function AllTreatments() {
                   {treatment.treatmentQuestions.map((question, i) => (
                     <li key={i} className="flex items-start gap-2">
                       <span className="text-green-600 text-base mt-0.5">✓</span>
-
-                      <span
-                        dangerouslySetInnerHTML={{
-                          __html: question.question || "",
-                        }}
-                      />
+                      <span dangerouslySetInnerHTML={{ __html: question.question || "" }} />
                     </li>
                   ))}
                 </ul>
@@ -247,13 +274,11 @@ export default function AllTreatments() {
             {totalItems > 0 && (
               <div className="text-sm text-gray-500">
                 Showing {startIndex + 1}–
-                {Math.min(startIndex + ITEMS_PER_PAGE, totalItems)} of{" "}
-                {totalItems}
+                {Math.min(startIndex + ITEMS_PER_PAGE, totalItems)} of {totalItems}
               </div>
             )}
 
             <div className="flex flex-wrap items-center justify-center gap-2">
-              {/* Prev */}
               <button
                 onClick={() => goToPage(currentPage - 1)}
                 disabled={currentPage === 1}
@@ -266,7 +291,6 @@ export default function AllTreatments() {
                 <ChevronLeft className="w-4 h-4" />
               </button>
 
-              {/* Page numbers with dots */}
               {getPaginationPages().map((page, i) =>
                 page === "..." ? (
                   <span
@@ -290,7 +314,6 @@ export default function AllTreatments() {
                 ),
               )}
 
-              {/* Next */}
               <button
                 onClick={() => goToPage(currentPage + 1)}
                 disabled={currentPage === totalPages}
@@ -313,9 +336,7 @@ export default function AllTreatments() {
               <DialogTitle>Delete Treatment</DialogTitle>
               <DialogDescription>
                 Are you sure you want to delete{" "}
-                <span className="font-semibold">
-                  {selectedTreatment?.title}
-                </span>
+                <span className="font-semibold">{selectedTreatment?.title}</span>
                 ? This action cannot be undone.
               </DialogDescription>
             </DialogHeader>
