@@ -8,22 +8,20 @@ import { useParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { toast } from "sonner";
+import { MultiSelect } from "@/components/ui/multi-select";
 
-const categories = [
-  "NAD+",
-  "MIC-B12",
-  "Glutathione",
-  "Vitamin C",
-  "B-Complex",
-  "Zinc",
-];
+type TreatmentNamesResponse = {
+  data?: {
+    combined?: string[];
+  };
+};
 
 type SizeOption = "Size Large" | "Size Medium" | "Size Small";
 
 interface ProductResponse {
   data: {
     name: string;
-    category: string;
+    category: string | string[];
     description: string;
     whatWillYouGet: string;
     price: number;
@@ -34,7 +32,7 @@ interface ProductResponse {
 
 function EditProducts() {
   const [productName, setProductName] = useState("");
-  const [category, setCategory] = useState("");
+  const [category, setCategory] = useState<string[]>([]);
   const [description, setDescription] = useState("");
   const [whatYouGet, setWhatYouGet] = useState("");
   const [price, setPrice] = useState("");
@@ -52,6 +50,26 @@ function EditProducts() {
   const session = useSession();
   const TOKEN = session?.data?.user?.accessToken;
 
+  const {
+    data: treatmentNames = [],
+    isLoading: isTreatmentNamesLoading,
+    isError: isTreatmentNamesError,
+  } = useQuery<string[]>({
+    queryKey: ["treatment-names-benefit-names"],
+    queryFn: async () => {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_API_URL}/treatment-response/all-treatment-names-and-treatment-benefit-names`,
+      );
+      if (!res.ok) throw new Error("Failed to fetch treatment names");
+      const result = (await res.json()) as TreatmentNamesResponse;
+      return result?.data?.combined ?? [];
+    },
+  });
+  const categoryOptions = React.useMemo(
+    () => Array.from(new Set([...treatmentNames, ...category])),
+    [treatmentNames, category],
+  );
+
   // ─── Fetch Single Product ─────────────────────────────────────────────
   const { data: productData } = useQuery({
     queryKey: ["productDetails", productId],
@@ -67,7 +85,14 @@ function EditProducts() {
     if (productData?.data) {
       const product = productData.data;
       setProductName(product.name || "");
-      setCategory(product.category || "");
+      const categoryValue = product.category ?? [];
+      const parsedCategory = Array.isArray(categoryValue)
+        ? categoryValue
+        : categoryValue
+            .split(",")
+            .map((item) => item.trim())
+            .filter(Boolean);
+      setCategory(parsedCategory);
       setDescription(product.description || "");
       setWhatYouGet(product.whatWillYouGet || "");
       setPrice(product.price?.toString() || "");
@@ -117,7 +142,7 @@ function EditProducts() {
     mutationFn: async () => {
       const formData = new FormData();
       formData.append("name", productName);
-      formData.append("category", category);
+      formData.append("category", category.join(", "));
       formData.append("description", description);
       formData.append("whatWillYouGet", whatYouGet);
       formData.append("price", price);
@@ -208,33 +233,21 @@ function EditProducts() {
           <label className="block text-sm font-semibold text-gray-700 mb-1.5">
             Product Category
           </label>
-          <div className="relative">
-            <select
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm text-gray-500 focus:outline-none focus:border-blue-400 transition-colors appearance-none bg-white cursor-pointer"
-            >
-              <option value="" disabled>
-                Select
-              </option>
-              {categories.map((cat) => (
-                <option key={cat} value={cat}>
-                  {cat}
-                </option>
-              ))}
-            </select>
-            <div className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-gray-400">
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                <path
-                  d="M4 6l4 4 4-4"
-                  stroke="#9ca3af"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </div>
-          </div>
+          <MultiSelect
+            options={categoryOptions}
+            value={category}
+            onChange={setCategory}
+            placeholder={
+              isTreatmentNamesLoading ? "Loading..." : "Select categories"
+            }
+            disabled={isTreatmentNamesLoading}
+            listClassName="max-h-56"
+          />
+          {isTreatmentNamesError && (
+            <p className="mt-1 text-xs text-red-500">
+              Failed to load categories.
+            </p>
+          )}
         </div>
 
         {/* Product Description */}
